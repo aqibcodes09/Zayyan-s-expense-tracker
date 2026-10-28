@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ur" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asaan Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#10b981', 600: '#059669' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans selection:bg-emerald-500 selection:text-black">
+
+  <!-- Main Container -->
+  <div class="max-w-md w-full mx-auto p-4 space-y-5">
+    
+    <!-- Top Header -->
+    <header class="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center shadow-lg">
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
+          <i class="fa-solid fa-wallet"></i> Mahana Kharcha
+        </h1>
+        <p class="text-xs text-slate-400 mt-0.5">Monthly expense tracker</p>
+      </div>
+      <span class="text-xs px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-medium border border-emerald-500/20">
+        <i class="fa-solid fa-check text-[10px] mr-1"></i> Ready
+      </span>
+    </header>
+
+    <!-- Total Monthly Expense Card -->
+    <div class="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-700/70 p-5 rounded-2xl shadow-xl space-y-3">
+      <div class="flex justify-between items-center">
+        <label class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Mahina Select Karein</label>
+        <input type="month" id="monthPicker" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500">
+      </div>
+      <div>
+        <p class="text-xs text-slate-400">Kul Kharcha (Total):</p>
+        <h2 class="text-3xl font-extrabold text-emerald-400 mt-1" id="totalDisplay">Rs. 0</h2>
+      </div>
+    </div>
+
+    <!-- Add Expense Form -->
+    <div class="bg-slate-800 border border-slate-700/60 p-5 rounded-2xl shadow-lg space-y-4">
+      <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-circle-plus text-emerald-400"></i> Naya Kharcha Likhein
+      </h3>
+
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Kis cheez par kharcha hua?</label>
+        <input type="text" id="itemTitle" placeholder="Maslan: Rashan, Fuel..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-500">
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-xs text-slate-400">Kitnay rupey? (Amount)</label>
+          <button id="toggleCalcBtn" class="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-medium">
+            <i class="fa-solid fa-calculator"></i> Calculator
+          </button>
+        </div>
+        <input type="number" id="itemAmount" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <!-- Calculator Drawer -->
+      <div id="calcBox" class="hidden bg-slate-900 border border-slate-700 p-3 rounded-xl space-y-2">
+        <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+          <span>Hisaab Calculator</span>
+          <button id="closeCalc" class="text-red-400 font-bold"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="text" id="calcScreen" readonly placeholder="0" class="w-full bg-slate-950 border border-slate-800 text-right text-xl font-mono text-emerald-400 p-2.5 rounded-lg">
+        <div class="grid grid-cols-4 gap-1.5 font-bold text-base">
+          <button onclick="calcPress('7')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">7</button>
+          <button onclick="calcPress('8')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">8</button>
+          <button onclick="calcPress('9')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">9</button>
+          <button onclick="calcPress('/')" class="bg-emerald-500/20 text-emerald-400 p-3 rounded-lg">/</button>
+          
+          <button onclick="calcPress('4')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">4</button>
+          <button onclick="calcPress('5')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">5</button>
+          <button onclick="calcPress('6')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">6</button>
+          <button onclick="calcPress('*')" class="bg-emerald-500/20 text-emerald-400 p-3 rounded-lg">*</button>
+          
+          <button onclick="calcPress('1')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">1</button>
+          <button onclick="calcPress('2')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">2</button>
+          <button onclick="calcPress('3')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">3</button>
+          <button onclick="calcPress('-')" class="bg-emerald-500/20 text-emerald-400 p-3 rounded-lg">-</button>
+          
+          <button onclick="calcClear()" class="bg-red-500/20 text-red-400 p-3 rounded-lg">C</button>
+          <button onclick="calcPress('0')" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg text-slate-200">0</button>
+          <button onclick="calcEqual()" class="bg-emerald-500 text-black p-3 rounded-lg font-bold">=</button>
+          <button onclick="calcPress('+')" class="bg-emerald-500/20 text-emerald-400 p-3 rounded-lg">+</button>
+        </div>
+        <button id="useCalcValue" class="w-full bg-slate-800 border border-emerald-500/30 text-emerald-400 py-2 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Use Amount in Kharcha
+        </button>
+      </div>
+
+      <button id="addExpenseBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-500/20 flex justify-center items-center gap-2">
+        <i class="fa-solid fa-plus"></i> Kharcha Save Karein
+      </button>
+    </div>
+
+    <!-- Expenses History List -->
+    <div class="space-y-3">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Iss Mahine Ka Record & Date</h3>
+      <div id="expenseList" class="space-y-2">
+        <div class="text-center py-8 text-slate-500 text-xs">Data load ho raha hai...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Hidden / Discrete Footer (Import & Export hidden here) -->
+  <footer class="text-center py-6 text-[10px] text-slate-700 space-y-2">
+    <div>Asaan Expense Tracker &bull; Mobile & PC Cloud Sync</div>
+    
+    <!-- Hidden / Very Discrete Backup Controls -->
+    <div class="opacity-30 hover:opacity-100 transition flex justify-center items-center gap-4 text-[10px]">
+      <button onclick="exportData()" class="hover:text-emerald-400 flex items-center gap-1">
+        <i class="fa-solid fa-download"></i> Backup
+      </button>
+      <span>|</span>
+      <label class="hover:text-emerald-400 flex items-center gap-1 cursor-pointer">
+        <i class="fa-solid fa-upload"></i> Restore
+        <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+      </label>
+    </div>
+  </footer>
+
+  <script>
+    // ----------------------------------------------------
+    // LOCAL STORAGE + CLOUD HYBRID STORAGE (GUARANTEED NO GLITCH)
+    // ----------------------------------------------------
+    const firebaseConfig = {
+      databaseURL: "https://testing-default-rtdb.firebaseio.com"
+    };
+    
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database().ref("my_expenses");
+
+    const monthPicker = document.getElementById('monthPicker');
+    const today = new Date();
+    const currentYYYYMM = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    monthPicker.value = currentYYYYMM;
+
+    const itemTitle = document.getElementById('itemTitle');
+    const itemAmount = document.getElementById('itemAmount');
+    const addExpenseBtn = document.getElementById('addExpenseBtn');
+    const expenseList = document.getElementById('expenseList');
+    const totalDisplay = document.getElementById('totalDisplay');
+
+    let expensesData = JSON.parse(localStorage.getItem('my_expenses_data')) || {};
+
+    // Render Data
+    function renderExpenses() {
+      const selectedMonth = monthPicker.value;
+      expenseList.innerHTML = '';
+      let total = 0;
+      let count = 0;
+
+      const keys = Object.keys(expensesData).reverse();
+
+      keys.forEach(key => {
+        const item = expensesData[key];
+        if (item && item.month === selectedMonth) {
+          count++;
+          total += Number(item.amount);
+
+          const card = document.createElement('div');
+          card.className = "bg-slate-800 border border-slate-700/60 p-3.5 rounded-xl flex justify-between items-center shadow-md";
+          card.innerHTML = `
+            <div>
+              <h4 class="font-bold text-sm text-slate-100">${escapeHTML(item.title)}</h4>
+              <p class="text-[11px] text-emerald-400/90 mt-0.5"><i class="fa-regular fa-calendar mr-1"></i>${item.date || 'N/A'}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="font-bold text-emerald-400 text-base">Rs. ${item.amount}</span>
+              <button onclick="deleteExpense('${key}')" class="text-slate-500 hover:text-red-400 text-xs p-1">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `;
+          expenseList.appendChild(card);
+        }
+      });
+
+      if (count === 0) {
+        expenseList.innerHTML = `<div class="bg-slate-800/40 border border-dashed border-slate-700/60 rounded-xl p-6 text-center text-slate-500 text-xs">Iss mahine koi kharcha add nahi hua.</div>`;
+      }
+
+      totalDisplay.innerText = `Rs. ${total.toLocaleString()}`;
+    }
+
+    // Load from Cloud & Sync
+    function syncWithCloud() {
+      db.on('value', (snapshot) => {
+        const cloudData = snapshot.val();
+        if (cloudData) {
+          expensesData = cloudData;
+          localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
+          renderExpenses();
+        }
+      });
+    }
+
+    // Add Expense
+    addExpenseBtn.addEventListener('click', () => {
+      const title = itemTitle.value.trim();
+      const amount = itemAmount.value.trim();
+      const selectedMonth = monthPicker.value;
+
+      if (!title || !amount || Number(amount) <= 0) {
+        alert("Meharbani karke kharche ka naam aur sahi amount daalein!");
+        return;
+      }
+
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' }) + ' (' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')';
+
+      const key = 'exp_' + Date.now();
+      const newExpense = {
+        title: title,
+        amount: Number(amount),
+        month: selectedMonth,
+        date: formattedDate
+      };
+
+      // Save locally first (instant UI update)
+      expensesData[key] = newExpense;
+      localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
+      renderExpenses();
+
+      // Sync to cloud
+      db.child(key).set(newExpense);
+
+      itemTitle.value = '';
+      itemAmount.value = '';
+    });
+
+    // Delete Expense
+    function deleteExpense(key) {
+      if (confirm("Kya aap yeh kharcha delete karna chahte hain?")) {
+        delete expensesData[key];
+        localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
+        renderExpenses();
+        db.child(key).remove();
+      }
+    }
+
+    monthPicker.addEventListener('change', renderExpenses);
+
+    // Export Data (Hidden Backup)
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(expensesData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "expense_backup_" + new Date().toISOString().slice(0, 10) + ".json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Import Data (Hidden Restore)
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedJSON = JSON.parse(e.target.result);
+          if (confirm("Kya aap yeh data restore karna chahte hain?")) {
+            expensesData = importedJSON;
+            localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
+            renderExpenses();
+            db.set(importedJSON);
+            alert("Data restore ho gaya!");
+          }
+        } catch (err) {
+          alert("Sahi JSON backup file select karein.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Calculator Logic
+    const calcBox = document.getElementById('calcBox');
+    const calcScreen = document.getElementById('calcScreen');
+
+    document.getElementById('toggleCalcBtn').addEventListener('click', () => {
+      calcBox.classList.toggle('hidden');
+    });
+    document.getElementById('closeCalc').addEventListener('click', () => {
+      calcBox.classList.add('hidden');
+    });
+
+    function calcPress(val) { calcScreen.value += val; }
+    function calcClear() { calcScreen.value = ''; }
+    function calcEqual() {
+      try { calcScreen.value = eval(calcScreen.value); }
+      catch { calcScreen.value = 'Error'; }
+    }
+    document.getElementById('useCalcValue').addEventListener('click', () => {
+      if (calcScreen.value && calcScreen.value !== 'Error') {
+        itemAmount.value = calcScreen.value;
+        calcBox.classList.add('hidden');
+      }
+    });
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    renderExpenses();
+    syncWithCloud();
+  </script>
+</body>
+</html>
