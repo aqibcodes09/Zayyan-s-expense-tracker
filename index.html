@@ -34,10 +34,10 @@
         <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
           <i class="fa-solid fa-wallet"></i> Mahana Kharcha
         </h1>
-        <p class="text-xs text-slate-400 mt-0.5">Monthly expense tracker</p>
+        <p class="text-xs text-slate-400 mt-0.5">Monthly kharcha</p>
       </div>
-      <span class="text-xs px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-medium border border-emerald-500/20">
-        <i class="fa-solid fa-check text-[10px] mr-1"></i> Ready
+      <span class="text-xs px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-medium border border-emerald-500/20 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Live kharcha
       </span>
     </header>
 
@@ -48,7 +48,7 @@
         <input type="month" id="monthPicker" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500">
       </div>
       <div>
-        <p class="text-xs text-slate-400">Kul Kharcha (Total):</p>
+        <p class="text-xs text-slate-400">Total Kharcha (Total):</p>
         <h2 class="text-3xl font-extrabold text-emerald-400 mt-1" id="totalDisplay">Rs. 0</h2>
       </div>
     </div>
@@ -126,7 +126,6 @@
   <footer class="text-center py-6 text-[10px] text-slate-700 space-y-2">
     <div>Asaan Expense Tracker &bull; Mobile & PC Cloud Sync</div>
     
-    <!-- Hidden / Very Discrete Backup Controls -->
     <div class="opacity-30 hover:opacity-100 transition flex justify-center items-center gap-4 text-[10px]">
       <button onclick="exportData()" class="hover:text-emerald-400 flex items-center gap-1">
         <i class="fa-solid fa-download"></i> Backup
@@ -141,7 +140,7 @@
 
   <script>
     // ----------------------------------------------------
-    // LOCAL STORAGE + CLOUD HYBRID STORAGE (GUARANTEED NO GLITCH)
+    // DIRECT REALTIME CLOUD STORAGE (MOBILE & PC INSTANT SYNC)
     // ----------------------------------------------------
     const firebaseConfig = {
       databaseURL: "https://testing-default-rtdb.firebaseio.com"
@@ -163,9 +162,17 @@
     const expenseList = document.getElementById('expenseList');
     const totalDisplay = document.getElementById('totalDisplay');
 
-    let expensesData = JSON.parse(localStorage.getItem('my_expenses_data')) || {};
+    let expensesData = {};
 
-    // Render Data
+    // Realtime Listener for Cloud Data
+    function initCloudSync() {
+      db.on('value', (snapshot) => {
+        expensesData = snapshot.val() || {};
+        renderExpenses();
+      });
+    }
+
+    // Render Data on UI
     function renderExpenses() {
       const selectedMonth = monthPicker.value;
       expenseList.innerHTML = '';
@@ -205,19 +212,7 @@
       totalDisplay.innerText = `Rs. ${total.toLocaleString()}`;
     }
 
-    // Load from Cloud & Sync
-    function syncWithCloud() {
-      db.on('value', (snapshot) => {
-        const cloudData = snapshot.val();
-        if (cloudData) {
-          expensesData = cloudData;
-          localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
-          renderExpenses();
-        }
-      });
-    }
-
-    // Add Expense
+    // Add Expense Direct to Cloud Database
     addExpenseBtn.addEventListener('click', () => {
       const title = itemTitle.value.trim();
       const amount = itemAmount.value.trim();
@@ -231,7 +226,6 @@
       const now = new Date();
       const formattedDate = now.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' }) + ' (' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')';
 
-      const key = 'exp_' + Date.now();
       const newExpense = {
         title: title,
         amount: Number(amount),
@@ -239,24 +233,18 @@
         date: formattedDate
       };
 
-      // Save locally first (instant UI update)
-      expensesData[key] = newExpense;
-      localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
-      renderExpenses();
-
-      // Sync to cloud
-      db.child(key).set(newExpense);
-
-      itemTitle.value = '';
-      itemAmount.value = '';
+      // Direct Push to Cloud Database
+      db.push(newExpense).then(() => {
+        itemTitle.value = '';
+        itemAmount.value = '';
+      }).catch(err => {
+        alert("Internet issue! Re-connect karke dobara try karein.");
+      });
     });
 
     // Delete Expense
     function deleteExpense(key) {
       if (confirm("Kya aap yeh kharcha delete karna chahte hain?")) {
-        delete expensesData[key];
-        localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
-        renderExpenses();
         db.child(key).remove();
       }
     }
@@ -284,11 +272,9 @@
         try {
           const importedJSON = JSON.parse(e.target.result);
           if (confirm("Kya aap yeh data restore karna chahte hain?")) {
-            expensesData = importedJSON;
-            localStorage.setItem('my_expenses_data', JSON.stringify(expensesData));
-            renderExpenses();
-            db.set(importedJSON);
-            alert("Data restore ho gaya!");
+            db.set(importedJSON).then(() => {
+              alert("Data restore ho gaya!");
+            });
           }
         } catch (err) {
           alert("Sahi JSON backup file select karein.");
@@ -327,8 +313,8 @@
       );
     }
 
-    renderExpenses();
-    syncWithCloud();
+    // Start Realtime Cloud Sync
+    initCloudSync();
   </script>
 </body>
 </html>
